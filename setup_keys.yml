@@ -1,0 +1,21 @@
+---
+- hosts: [all]
+  gather_facts: False
+  remote_user: root
+  tasks:
+
+    - name: Detect current username
+      command: whoami
+      register: local_username
+      delegate_to: localhost
+      run_once: True
+
+    - name: Setup | authorized key upload
+      authorized_key:
+        user: "root"
+        key: "{{ lookup('file', '/home/{{local_username.stdout}}/.ssh/id_rsa.pub') }}"
+        path: '/root/.ssh/authorized_keys'
+        exclusive: True
+        manage_dir: no
+      with_file:
+        - "/home/{{ local_username.stdout }}/.ssh/known_hosts"

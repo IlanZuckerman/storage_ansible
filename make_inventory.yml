@@ -1,0 +1,31 @@
+---
+- hosts: [localhost]
+  gather_facts: false
+
+  tasks:
+    - name: Initialize an empty lists for our strings
+      set_fact:
+        my_strings: []
+        engine_fqdns: []
+        result: []
+
+    - name: Locate GE yaml paths
+      find:
+        paths: "{{ ge_yamls_path }}"
+        patterns: "storage-ge*.yaml"
+      register: files_matched
+
+    - name: Make list of paths
+      set_fact:
+        my_strings: "{{ my_strings + [ item.path ] }}"
+      with_items: "{{ files_matched.files }}"
+
+    - name: Find pattern in ge files
+      shell: "grep 'engine_fqdn:' {{ item.path }} | awk '{print $2}' | xargs"
+      register: result
+      with_items: "{{ files_matched.files }}"
+
+    - name: Make an inventory file out of template
+      template:
+        src: ./template.j2
+        dest: inventory.yml
