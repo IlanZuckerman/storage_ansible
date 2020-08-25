@@ -12,7 +12,7 @@
     - name: Locate GE yaml paths
       find:
         paths: "{{ ge_yamls_path }}"
-        patterns: "storage-ge*.yaml"
+        patterns: "{{ pattern }}"
       register: files_matched
 
     - name: Make list of paths

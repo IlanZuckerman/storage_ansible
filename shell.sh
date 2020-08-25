@@ -1,14 +1,19 @@
 #!/bin/bash
 # execution example:
-# ./shell.sh /home/ilan/git/rhevm-jenkins/qe/GE-yamls
+# $ ./shell.sh --ge_yamls_path /home/ilan/git/rhevm-jenkins/qe/GE-yamls --pattern storage-ge*.yaml
 
-if [ $# -eq 0 ]
-  then
-    echo "No arguments supplied.
-You need to pass a full path of where the storage-ge yamls are"
-    exit 1
-fi
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -g|--ge_yamls_path) ge_yamls_path="$2"; shift ;;
+        -p|--pattern) pattern="$2"; shift;;
+        *) echo "Unknown parameter passed: $1"; exit 1 ;;
+    esac
+    shift
+done
 
-ansible-playbook make_inventory.yml -e "ge_yamls_path=$1"
+echo "ge yaml path: $ge_yamls_path"
+echo "pattern: $pattern"
+
+ansible-playbook make_inventory.yml -e "ge_yamls_path=$ge_yamls_path, pattern=$pattern"
 ansible-playbook -i inventory.yml setup_keys.yml -e="ansible_password=qum5net"
 ansible-playbook -i inventory.yml get_env_info.yml
