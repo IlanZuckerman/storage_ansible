@@ -14,6 +14,6 @@ done
 echo "ge yaml path: $ge_yamls_path"
 echo "pattern: $pattern"
 
-ansible-playbook make_inventory.yml -e "ge_yamls_path=$ge_yamls_path, pattern=$pattern"
-ansible-playbook -i inventory.yml setup_keys.yml -e="ansible_password=qum5net"
-ansible-playbook -i inventory.yml get_env_info.yml
+ansible-playbook tasks/make_inventory.yml -e "ge_yamls_path=$ge_yamls_path, pattern=$pattern"
+ansible-playbook -i inventory.yml tasks/setup_keys.yml -e="ansible_password=qum5net"
+ansible-playbook -i inventory.yml tasks/get_env_info.yml

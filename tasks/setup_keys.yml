@@ -1,0 +1,69 @@
+---
+- hosts: all
+  gather_facts: no
+  tasks:
+   - command: ping -c1 {{ inventory_hostname }}
+     delegate_to: localhost
+     register: ping_result
+     ignore_errors: yes
+   - group_by:
+       key: reachable
+     when: ping_result is success
+
+   - set_fact: reachable=groups['reachable']
+
+   - name: Make an inventory file out of only pingable hosts only
+     template:
+       src: ../templates/filtered_inv_template.j2
+       dest: ../inventory.yml
+     delegate_to: localhost
+
+
+### This section is To update local known_hosts file (in case it changed) ###
+- name: Store known hosts of 'all' the hosts in the inventory file
+  hosts: localhost
+  connection: local
+
+  vars:
+    ssh_known_hosts_command: "ssh-keyscan -T 10"
+    ssh_known_hosts_file: "{{ lookup('env','HOME') + '/.ssh/known_hosts' }}"
+    ssh_known_hosts: "{{ groups['reachable'] }}"
+
+  tasks:
+
+  - name: For each host, scan for its ssh public key
+    shell: "ssh-keyscan {{ item }},`dig +short {{ item }}`"
+    with_items: "{{ ssh_known_hosts }}"
+    register: ssh_known_host_results
+    ignore_errors: yes
+
+  - name: Add/update the public key in the '{{ ssh_known_hosts_file }}'
+    known_hosts:
+      name: "{{ item.item }}"
+      key: "{{ item.stdout }}"
+      path: "{{ ssh_known_hosts_file }}"
+    with_items: "{{ ssh_known_host_results.results }}"
+
+
+
+- hosts: [reachable]
+  gather_facts: False
+  remote_user: root
+  tasks:
+
+    - name: Detect current username
+      command: whoami
+      register: local_username
+      delegate_to: localhost
+      run_once: True
+
+    - name: Setup | authorized key upload
+      authorized_key:
+        user: "root"
+        key: "{{ lookup('file', '/home/{{local_username.stdout}}/.ssh/id_rsa.pub') }}"
+        path: '/root/.ssh/authorized_keys'
+        manage_dir: no
+      with_file:
+        - "/home/{{ local_username.stdout }}/.ssh/known_hosts"
+
+

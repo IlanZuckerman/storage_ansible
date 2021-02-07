@@ -1,0 +1,50 @@
+---
+- block:
+  - name: Login
+    ovirt_auth:
+      url: "https://{{engine}}/ovirt-engine/api"
+      password: "123456"
+      username: 'admin@internal'
+    register: loggedin
+    ignore_errors: true
+
+  - ovirt_api_info:
+      auth: "{{ ovirt_auth | default(omit) }}"
+    register: ovirt_api_result
+    when: not loggedin['failed']
+
+  - name: Get engine release version
+    shell: rpm -qa | grep rhv-release; systemctl status ovirt-engine | grep Active | awk '{print $2}'
+    register: result
+    ignore_errors: True
+    delegate_to: "{{ engine }}"
+    remote_user: 'root'
+
+  - ovirt_storage_domain_facts:
+      auth: "{{ ovirt_auth }}"
+      pattern: datacenter=golden_env_mixed and status!=active
+    when:
+      - not loggedin.skipped | default(false)
+      - not loggedin['failed']
+
+  - set_fact:
+      not_active_sds: "{{ovirt_storage_domains | map(attribute='name') | list | default([])  }}"
+
+  - lineinfile:
+      create: true
+      line: "\nEngine: {{ engine }}\nRHV release and status: {{ result.stdout_lines | default(omit) }}\novirt-engine version: {{ ovirt_api_result.ovirt_api.product_info.version.full_version | default(None) }}\nTotal hosts: {{ ovirt_api_result.ovirt_api.summary.hosts.total | default(None) }}\nActive hosts: {{ ovirt_api_result.ovirt_api.summary.hosts.active | default(None) }}"
+      path: ../env_info.txt
+
+  - lineinfile:
+      line: "*** Not Active SDs *** : {{ not_active_sds }}"
+      path: ../env_info.txt
+    when: not_active_sds|length > 1
+
+  always:
+    - name: Logout from oVirt
+      ovirt_auth:
+        state: absent
+        ovirt_auth: "{{ ovirt_auth }}"
+      when:
+        - not loggedin.skipped | default(false)
+        - not loggedin['failed']

@@ -27,5 +27,5 @@
 
     - name: Make an inventory file out of template
       template:
-        src: ./template.j2
-        dest: inventory.yml
+        src: ../templates/basic_inv_template.j2
+        dest: ../inventory.yml

@@ -1,0 +1,13 @@
+---
+- hosts: [localhost]
+  gather_facts: false
+
+  tasks:
+    - name: Create empty env_info file
+      copy:
+        content: ""
+        dest: ../env_info.txt
+
+    - name: Loop through all pingable hosts and fetch data from them
+      include: task.yml engine={{item}}
+      with_items: "{{ groups['all'] }}"

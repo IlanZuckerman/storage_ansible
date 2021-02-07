@@ -7,9 +7,13 @@ In order to build inventory file on the fly, the script needs to parse ge yamls 
 Ansible will parse only those yamls which name ally with the pattern.
 
 **Prerequisites:**  
+- python3-ovirt-engine-sdk4 Installed:  
+`$ sudo dnf install python3-ovirt-engine-sdk4`
 
-Ansible installed  
-'shell.sh' need to have execution permission
+- Ansible installed  
+`$ sudo dnf install python3-ovirt-engine-sdk4`  
+- 'shell.sh' script need to have execution permission  
+`$ chmod +x <path/to/shell.sh`
 
 **Execution:**  
 - Navigate to the folder where 'shell.sh' resides  
