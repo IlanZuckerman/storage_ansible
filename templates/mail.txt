@@ -1,0 +1,4 @@
+From: RHV-QE-STORAGE GA's reporter <noreply-storage-GEs-state@redhat.com>
+To: rhevm-qe-storage <rhevm-qe-storage@redhat.com>
+Subject: [rhv-storage-qe-GA's-report] Daily GE's state report
+Content-Type: text/html; charset="utf-8"

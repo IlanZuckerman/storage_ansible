@@ -3,11 +3,27 @@
   gather_facts: false
 
   tasks:
+    - include_vars: ../vars/secret
+
     - name: Create empty env_info file
       copy:
         content: ""
         dest: ../env_info.txt
 
+
+    - name: Display the JSON file content ge_names.json
+      shell: cat ../ge_names.json
+      register: result
+
+    - name: save the Json data to a Variable as a Fact
+      set_fact:
+        jsondata: "{{ result.stdout | from_json }}"
+
     - name: Loop through all pingable hosts and fetch data from them
-      include: task.yml engine={{item}}
+      include: task.yml engine={{item}} jsondata={{jsondata}}
       with_items: "{{ groups['all'] }}"
+
+    - name: Write out the obtained facts
+      copy:
+        content: "{{ env_info | to_nice_json }}"
+        dest: ../env_info.json

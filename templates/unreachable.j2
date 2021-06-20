@@ -1,0 +1,3 @@
+{% for item in groups['unreachable']|sort(case_sensitive=False) %}
+{{ item }}
+{% endfor %}

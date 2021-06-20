@@ -9,13 +9,27 @@
    - group_by:
        key: reachable
      when: ping_result is success
+   - group_by:
+       key: unreachable
+     when: ping_result is not success
 
-   - set_fact: reachable=groups['reachable']
+   - block:
+     - name: Setting facts for 'reachable' and 'unreachable' hosts
+       set_fact:
+         reachable: groups['reachable']|default(omit)
+         unreachable: groups['unreachable']|default(omit)
 
-   - name: Make an inventory file out of only pingable hosts only
-     template:
-       src: ../templates/filtered_inv_template.j2
-       dest: ../inventory.yml
+     - name: Creating unreachable.txt file from template
+       template:
+         src: ../templates/unreachable.j2
+         dest: ../unreachable.txt
+       when: groups['unreachable'] is defined
+
+     - name: Creating inventory.yml file out of only pingable hosts only
+       template:
+         src: ../templates/filtered_inv_template.j2
+         dest: ../inventory.yml
+     run_once: True
      delegate_to: localhost
 
 
@@ -31,6 +45,12 @@
 
   tasks:
 
+  - name: Detect current username
+    command: whoami
+    register: local_username
+
+  - debug: var=local_username.stdout_lines|list|last
+
   - name: For each host, scan for its ssh public key
     shell: "ssh-keyscan {{ item }},`dig +short {{ item }}`"
     with_items: "{{ ssh_known_hosts }}"
@@ -44,6 +64,20 @@
       path: "{{ ssh_known_hosts_file }}"
     with_items: "{{ ssh_known_host_results.results }}"
 
+  - name: Set fact for public key and known hosts path if user IS root
+    set_fact:
+      pub_key_path: "{{ lookup('file', '/{{local_username.stdout}}/.ssh/id_rsa.pub') }}"
+      known_hosts_path: "/{{ local_username.stdout }}/.ssh/known_hosts"
+    when: local_username.stdout_lines|list|last == "root"
+    run_once: True
+
+  - name: Set fact for public key and known hosts path if user not root
+    set_fact:
+      pub_key_path: "{{ lookup('file', '/home/{{local_username.stdout}}/.ssh/id_rsa.pub') }}"
+      known_hosts_path: "/home/{{ local_username.stdout }}/.ssh/known_hosts"
+    when: local_username.stdout_lines|list|last != 'root'
+    run_once: True
+
 
 
 - hosts: [reachable]
@@ -51,19 +85,11 @@
   remote_user: root
   tasks:
 
-    - name: Detect current username
-      command: whoami
-      register: local_username
-      delegate_to: localhost
-      run_once: True
-
     - name: Setup | authorized key upload
       authorized_key:
         user: "root"
-        key: "{{ lookup('file', '/home/{{local_username.stdout}}/.ssh/id_rsa.pub') }}"
+        key: "{{ hostvars['localhost']['pub_key_path'] }}"
         path: '/root/.ssh/authorized_keys'
         manage_dir: no
       with_file:
-        - "/home/{{ local_username.stdout }}/.ssh/known_hosts"
-
-
+        - "{{ hostvars['localhost']['known_hosts_path'] }}"

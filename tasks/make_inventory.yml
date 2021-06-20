@@ -8,10 +8,13 @@
         my_strings: []
         engine_fqdns: []
         result: []
+        ge_names: []
+        fqdn_ge_name: []
 
     - name: Locate GE yaml paths
       find:
         paths: "{{ ge_yamls_path }}"
+        use_regex: True
         patterns: "{{ pattern }}"
       register: files_matched
 
@@ -21,11 +24,28 @@
       with_items: "{{ files_matched.files }}"
 
     - name: Find pattern in ge files
-      shell: "grep 'engine_fqdn:' {{ item.path }} | awk '{print $2}' | xargs"
+      shell: "grep '^engine_fqdn:' {{ item }} | awk '{print $2}' | xargs"
       register: result
-      with_items: "{{ files_matched.files }}"
+      with_items: "{{ my_strings }}"
 
     - name: Make an inventory file out of template
       template:
         src: ../templates/basic_inv_template.j2
         dest: ../inventory.yml
+
+    - name: Extract GE name from GE yamls
+      shell: "grep '^name: ' {{ item }} | awk '{print $2}' | xargs"
+      register: ge_names
+      with_items: "{{ my_strings }}"
+
+    - name: Make a key/val dict with engine fqdn / ge name
+      set_fact:
+        fqdn_ge_name: "{{ fqdn_ge_name | default([]) | combine({ item.0.stdout: item.1.stdout }) }}"
+      with_together:
+        - "{{ result.results }}"
+        - "{{ ge_names.results }}"
+
+    - name: Write to file engine fqdn / GE name key/val as json
+      copy:
+        content: "{{ fqdn_ge_name | to_nice_json }}"
+        dest: ../ge_names.json

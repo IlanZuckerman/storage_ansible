@@ -3,8 +3,8 @@
   - name: Login
     ovirt_auth:
       url: "https://{{engine}}/ovirt-engine/api"
-      password: "123456"
-      username: 'admin@internal'
+      password: "{{ pass }}"
+      username: "{{ user}}"
     register: loggedin
     ignore_errors: true
 
@@ -28,7 +28,7 @@
       - not loggedin['failed']
 
   - set_fact:
-      not_active_sds: "{{ovirt_storage_domains | map(attribute='name') | list | default([])  }}"
+      not_active_sds: "{{ovirt_storage_domains | default([]) | map(attribute='name') | list }}"
 
   - lineinfile:
       create: true
@@ -36,9 +36,25 @@
       path: ../env_info.txt
 
   - lineinfile:
-      line: "*** Not Active SDs *** : {{ not_active_sds }}"
+      line: "*** Not Active SDs *** : {{ not_active_sds | join(', ') }}"
       path: ../env_info.txt
     when: not_active_sds|length > 1
+
+  - name: Set facts map
+    set_fact:
+      engine_info: "{{ {} |
+        combine({ 'engine_fqdn': engine }) |
+        combine({ 'ge_name': jsondata[engine] | default(omit) }) |
+        combine({ 'rhv_release': result.stdout_lines | default(omit)}) |
+        combine({ 'engine_version': ovirt_api_result.ovirt_api.product_info.version.full_version | default('')}) |
+        combine({ 'host_num': ovirt_api_result.ovirt_api.summary.hosts.total | default(0)}) |
+        combine({ 'host_num_active': ovirt_api_result.ovirt_api.summary.hosts.active | default(0)}) |
+        combine({ 'not_active_sds': not_active_sds | join(', ') | default(0)})
+      }}"
+
+  - name: Chain the facts
+    set_fact:
+      env_info: "{{ env_info | default( [] ) | union( [ engine_info ]) }}"
 
   always:
     - name: Logout from oVirt

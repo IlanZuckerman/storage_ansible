@@ -1,4 +1,4 @@
 [all]
-{% for item in groups['reachable'] %}
+{% for item in groups['reachable']|sort(case_sensitive=False) %}
   {{ item }}
 {% endfor %}

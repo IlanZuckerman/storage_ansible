@@ -1,0 +1,121 @@
+<html>
+  <head>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <style type="text/css">
+      .document {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        margin: 30px auto 0;
+        width: 1880px;
+        font-size: 14px;
+      }
+      .docwrapper {
+        float: left;
+        width: 100%;
+      }
+      .docheader {
+        background-color: DeepSkyBlue;
+        color: Black;
+        margin-top: 5px;
+        margin-bottom: 5px;
+        padding: 5px;
+        height: 28px;
+        border-radius: 3px;
+        font-size: 20px;
+      }
+      .doccontent {
+        margin: 0 0 0 0px;
+        height: 720px;
+        max-height: 1440px;
+        overflow: auto;
+        padding: 5px;
+        background-color: #eeeeee;
+      }
+      .docfooter {
+        background-color: DeepSkyBlue;
+        color: Black;
+        margin-top: 0px;
+        margin-bottom: 0px;
+        padding: 0px;
+        border-radius: 3px;
+        text-align: center;
+      }
+      table.data {
+          border: 2px solid lightgrey;
+          border-collapse: collapse;
+          width: 100%;
+      }
+      th.data, td.data {
+          padding: 3px;
+          border: 1px solid lightgrey;
+          border-collapse: collapse;
+      }
+      td.num1 {
+          text-align: right;
+      }
+      .smallnumframe {
+        width: 100px;
+      }
+      .smallnum {
+        position: relative;
+        text-align: right;
+        width: 16px;
+      }
+      .inline {
+        display: inline-block;
+      }
+      .unreachable {
+        color: #dd0000;
+      }
+      .activerow:hover {
+        background-color: AliceBlue;
+      }
+    </style>
+    <title>{{ title }}</title>
+  </head>
+  <body>
+    <div class="document">
+      <div class="docheader">
+        {{ hdr }}
+      </div>
+      <div class="docwrapper">
+        <div class="doccontent">
+          <table class="data" border="1">
+            <tr>
+              <th class="data">Engine</th>
+              <th class="data">GE Name</th>
+              <th class="data">Version</th>
+              <th class="data">Total Hosts</th>
+              <th class="data">Active hosts</th>
+              <th class="data">Not active SD's</th>
+              <th class="data">Release</th>
+            </tr>
+          {% for env in envs %}
+            <tr class="activerow">
+              <td class="data"><a href="https://{{ env.engine_fqdn }}">{{ env.engine_fqdn.split('.')[0] }}</a></td>
+              <td class="data" align="center">{{ env.ge_name }}</td>
+              <td class="data">{{ env.engine_version }}</td>
+              <td class="data" align="center">{{ env.host_num }}</td>
+              <td class="data" align="center">{{ env.host_num_active }}</td>
+              <td class="data" align="center">{{ env.not_active_sds }}</td>
+              <td class="data">{{ env.rhv_release[0] }}</td>
+            </tr>
+          {% endfor %}
+          {% for down in unreachables %}
+            <tr class="activerow">
+              <td class="data" title="{{ down }}"><div class="unreachable">{{ down.split('.')[0] }}</div></td>
+              <td class="data"></td>
+              <td class="data" align="center"></td>
+              <td class="data" align="center"></td>
+              <td class="data"></td>
+              <td class="data"></td>
+            </tr>
+          {% endfor %}
+          </table>
+        </div>
+      </div>
+      <div class="docfooter">
+        Generated: {{ dtutc.strftime("%Y-%m-%d %H:%M") }} UTC
+      </div>
+    </div>
+  </body>
+</html>
